@@ -1,0 +1,24 @@
+name: Run UFT Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-uft-test:
+    runs-on: [self-hosted, windows]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Run all UFT Tests using PowerShell script
+        run: |
+          echo "Running all UFT tests under uft-one-tests folder"
+          powershell -ExecutionPolicy Bypass -File "${{ github.workspace }}\\run-uft-tests-with-paramfile.ps1"
+        shell: powerShell
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: AllTestResults
+          path: C:\\VIP\\Demos\\Github\\UFTDemo2\\Results

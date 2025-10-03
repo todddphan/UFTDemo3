@@ -2,6 +2,18 @@ name: Run UFT Test
 
 on:
   workflow_dispatch:
+    inputs:
+      # Parameter for the group folder (e.g., 'group1')
+      group_folder_name: 
+        description: 'UFT Group Folder Name (e.g., group1 or group2)'
+        required: true
+        type: string
+        
+      # Parameter for the specific sheet/tab (optional if all tests use the same sheet)
+      data_sheet_name: 
+        description: 'Name of the sheet in the Excel data file to import (e.g., LoginScenarios)'
+        required: true
+        type: string
 
 jobs:
   run-uft-test:
@@ -11,14 +23,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Run all UFT Tests using PowerShell script
+      - name: Run all UFT Tests in the Specified Group
+        # Pass the group folder name and the sheet name
         run: |
-          echo "Running all UFT tests under uft-one-tests folder"
-          powershell -ExecutionPolicy Bypass -File "${{ github.workspace }}\\run-uft-tests-with-paramfile.ps1"
+          echo "Running all UFT tests in the ${{ github.event.inputs.group_folder_name }} folder."
+          powershell -ExecutionPolicy Bypass -File "${{ github.workspace }}\\run-uft-tests-with-paramfile.ps1" `
+          -GroupFolder "${{ github.event.inputs.group_folder_name }}" `
+          -DataSheetName "${{ github.event.inputs.data_sheet_name }}"
         shell: powerShell
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
         with:
           name: AllTestResults
-          path: C:\\VIP\\Demos\\Github\\UFTDemo2\\Results
+          path: C:\\VIP\\Demos\\Github\\UFTDemo3\\Results

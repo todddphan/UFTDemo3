@@ -27,7 +27,7 @@ jobs:
         # Pass the group folder name and the sheet name
         run: |
           echo "Running all UFT tests in the ${{ github.event.inputs.group_folder_name }} folder."
-          powershell -ExecutionPolicy Bypass -File "${{ github.workspace }}\\run-uft-tests-with-paramfile.ps1" `
+          pwsh -ExecutionPolicy Bypass -File "${{ github.workspace }}\\run-uft-tests-with-paramfile.ps1" `
           -GroupFolder "${{ github.event.inputs.group_folder_name }}" `
           -DataSheetName "${{ github.event.inputs.data_sheet_name }}"
         shell: pwsh

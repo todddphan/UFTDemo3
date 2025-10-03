@@ -1,48 +1,76 @@
-$testRoot = "C:\VIP\Demos\Github\UFTDemo2\uft-one-tests"
-$resultsRoot = "C:\VIP\Demos\Github\UFTDemo2\Results"
-$tempParamsRoot = "C:\VIP\Demos\Github\UFTDemo2\TempParams"
+param(
+    [Parameter(Mandatory=$true)]
+    [string]$GroupFolder,       # Example input from GitHub Action: "group1"
+    
+    [Parameter(Mandatory=$true)]
+    [string]$DataSheetName      # Example input from GitHub Action: "LoginScenarios"
+)
 
-# Ensure the root paths are defined with single backslashes for PowerShell to read them correctly
-# Note: You can use single backslashes in variable assignments.
+# 1. DEFINE ROOT PATHS (Updated for UFTDemo3 structure)
+$testRoot = "C:\VIP\Demos\Github\UFTDemo3\uft-one-tests"
+$resultsRoot = "C:\VIP\Demos\Github\UFTDemo3\Results"
+$tempParamsRoot = "C:\VIP\Demos\Github\UFTDemo3\TempParams"
 
-# Ensure the TempParams folder exists
+# 2. DEFINE EXCEL DATA PATH (Configure this to the absolute path of your Excel file)
+$excelDataPath = "C:\VIP\Demos\Github\UFTDemo3\Test_Data\MasterData.xlsx" 
+
+# --- FOLDER SETUP AND CLEANUP ---
+
+# 3. CLEAR out the TempParams folder content before starting the new run
+if (Test-Path -Path $tempParamsRoot) {
+    Write-Host "Clearing temporary parameter files from: $tempParamsRoot"
+    Remove-Item -Path "$tempParamsRoot\*" -Recurse -Force | Out-Null
+}
+
+# 4. Ensure the TempParams folder exists (or is recreated after clearing)
 if (!(Test-Path -Path $tempParamsRoot)) {
     New-Item -ItemType Directory -Path $tempParamsRoot | Out-Null
 }
 
-# Loop through each test folder
-Get-ChildItem -Path $testRoot -Directory | ForEach-Object {
+# --- EXECUTION LOGIC ---
+
+# 5. Construct the full path to the specific group directory
+$groupPath = "$testRoot\$GroupFolder"
+
+Write-Host "Searching for UFT tests in: $groupPath"
+
+# 6. Loop through each UFT test folder *inside* the specified group folder
+Get-ChildItem -Path $groupPath -Directory | ForEach-Object {
+    # $_.Name is the test folder name (e.g., "LoginTest")
     $testName = $_.Name
+    # $_.FullName is the full path to the UFT test folder
     $testPath = $_.FullName
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     
-    # Construct the full path for the results file and parameter file
-    # Use double backslashes in double-quoted strings for variable concatenation
-    $resultsFile = "$resultsRoot\\$testName`_$timestamp.html"
-    $paramFile = "$tempParamsRoot\\$testName`_params.txt"
+    # Construct paths for results and param files
+    $resultsFile = "$resultsRoot\$testName`_$timestamp.html"
+    $paramFile = "$tempParamsRoot\$testName`_params.txt"
 
-    # --- START OF FIX: Convert paths to use forward slashes for FTToolsLauncher ---
-    # Convert Windows backslashes (\) to forward slashes (/) for the parameter file content
+    # 7. FIX: Convert Windows backslashes (\) to forward slashes (/) for FTToolsLauncher
     $testPath_Fwd = $testPath -replace '\\', '/'
     $resultsFile_Fwd = $resultsFile -replace '\\', '/'
-    # --- END OF FIX ---
+    $excelDataPath_Fwd = $excelDataPath -replace '\\', '/'
 
-    # Create the parameter file content with the FIXED paths
-    # The paths now use forward slashes ($testPath_Fwd and $resultsFile_Fwd)
+    Write-Host "Processing test: $testName"
+    
+    # 8. Create the parameter file content with CUSTOM DATA PARAMETERS
     $paramContent = @"
 [General]
 RunMode=Normal
 runType=FileSystem
 resultsFilename=$resultsFile_Fwd
+DataTablePath=$excelDataPath_Fwd
+DataTableSheet=$DataSheetName
 
 [Test1]
-TestPath=$testPath_Fwd
+Test1=$testPath_Fwd
 "@
 
-    # Save the parameter file with explicit ASCII encoding
-    # (Keeping -Encoding ASCII is crucial for compatibility)
+    # 9. Save the parameter file with ASCII encoding
     $paramContent | Out-File -FilePath $paramFile -Encoding ASCII
 
-    # Run the test using FTToolsLauncher
+    # 10. Run the test using FTToolsLauncher
     & "C:\Tools\FTToolsLauncher\FTToolsLauncher.exe" -paramfile $paramFile
 }
+
+Write-Host "Finished processing tests in group: $GroupFolder"

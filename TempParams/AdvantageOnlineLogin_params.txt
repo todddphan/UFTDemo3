@@ -1,0 +1,9 @@
+[General]
+RunMode=Normal
+runType=FileSystem
+resultsFilename=C:/VIP/Demos/Github/UFTDemo3/Results/AdvantageOnlineLogin_20251003_105244.html
+DataTablePath=C:/VIP/Demos/Github/UFTDemo3/Test_Data/MasterData.xlsx
+DataTableSheet=sheet1
+
+[Test1]
+Test1=C:/VIP/Demos/Github/UFTDemo3/uft-one-tests/group1/AdvantageOnlineLogin

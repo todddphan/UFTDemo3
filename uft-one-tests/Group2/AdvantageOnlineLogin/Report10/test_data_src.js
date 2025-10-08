@@ -1,0 +1,1 @@
+﻿var __testDataSource={items:[{dataFilePath:'Default.xlsx',dataFileFormat:'excel',dataFileFolder:'C:\\VIP\\Demos\\Github\\UFTDemo3\\uft-one-tests\\Group2\\AdvantageOnlineLogin\\Report10',namePairs:[]}]};

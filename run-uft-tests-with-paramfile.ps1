@@ -45,7 +45,6 @@ Get-ChildItem -Path $groupPath -Directory | ForEach-Object {
 RunMode=Normal
 runType=FileSystem
 resultsFilename=$resultsFile_Fwd
-DataTablePath=$excelDataPath_Fwd
 DataTableSheet=$DataSheetName
 
 [Test1]

@@ -3,7 +3,7 @@ param(
     [string]$GroupFolder,       # Example input from GitHub Action: "group1"
     
     [Parameter(Mandatory=$true)]
-    [string]$DataSheetName      # Example input from GitHub Action: "LoginScenarios"
+    [string]$DataSheetName       # Example input from GitHub Action: "LoginScenarios"
 )
 
 # 1. DEFINE ROOT PATHS
@@ -23,7 +23,6 @@ if (Test-Path -Path $tempParamsRoot) {
 }
 
 # 4. CLEANUP STEP: Clear the Results folder content before starting the new run
-# This removes all previous HTML and XML result files.
 if (Test-Path -Path $resultsRoot) {
     Write-Host "Clearing previous test results from: $resultsRoot"
     Remove-Item -Path "$resultsRoot\*" -Recurse -Force | Out-Null
@@ -54,30 +53,34 @@ Get-ChildItem -Path $groupPath -Directory | ForEach-Object {
     $resultsFile = "$resultsRoot\$testName`_$timestamp.html"
     $paramFile = "$tempParamsRoot\$testName`_params.txt"
 
-    # 8. FIX: Convert Windows backslashes (\) to forward slashes (/) for FTToolsLauncher
-    $testPath_Fwd = $testPath -replace '\\', '/'
-    $resultsFile_Fwd = $resultsFile -replace '\\', '/'
-    $excelDataPath_Fwd = $excelDataPath -replace '\\', '/'
+    # 8. ⭐ CRITICAL FIX: Escape backslashes for FTToolsLauncher parameter file
+    # Replace all single backslashes (\) with double backslashes (\\).
+    # This is required for the UFT engine to correctly parse the Windows paths 
+    # when reading the INI-style parameter file.
+    $testPath_Escaped = $testPath -replace '\\', '\\\\'
+    $resultsFile_Escaped = $resultsFile -replace '\\', '\\\\'
+    $excelDataPath_Escaped = $excelDataPath -replace '\\', '\\\\'
 
     Write-Host "Processing test: $testName"
     
-    # 9. Create the parameter file content with CUSTOM DATA PARAMETERS
+    # 9. Create the parameter file content with ESCAPED PATHS
     $paramContent = @"
 [General]
 RunMode=Normal
 runType=FileSystem
-resultsFilename=$resultsFile_Fwd
-DataTablePath=$excelDataPath_Fwd
+resultsFilename=$resultsFile_Escaped
+DataTablePath=$excelDataPath_Escaped
 DataTableSheet=$DataSheetName
 
 [Test1]
-Test1=$testPath_Fwd
+Test1=$testPath_Escaped
 "@
 
-    # 10. Save the parameter file
-    $paramContent | Out-File -FilePath $paramFile -Encoding ASCII
+    # 10. Save the parameter file using default encoding (safe assumption)
+    $paramContent | Out-File -FilePath $paramFile
 
     # 11. Run the test using FTToolsLauncher
+    Write-Host "Executing test with parameters: $paramFile"
     & "C:\Tools\FTToolsLauncher\FTToolsLauncher.exe" -paramfile $paramFile
 }
 

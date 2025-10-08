@@ -1,6 +1,6 @@
 ﻿' Code to run in the DataSetup Action
-Dim ExcelPath : ExcelPath =  Environment.Value("DataTablePath") '"C:\VIP\Demos\Github\UFTDemo3\Test_Data\MasterData.xlsx" 
-Dim SheetName : SheetName = "Sheet1" 
+Dim ExcelPath : ExcelPath =  Environment.Value("DataTablePath") ' Defined in the run-uft-tests-with-paramfile.ps1 as "C:\VIP\Demos\Github\UFTDemo3\Test_Data\MasterData.xlsx" 
+Dim SheetName : SheetName =  Environment.Value("DataTableSheet")  'Need input from GitHub Action: "LoginScenarios"
 ' Imports the data into the current Action's data sheet
 'DataTable.ImportSheet ExcelPath, SheetName, DataTable.CurrentAction
 Dim CurrentActionName : CurrentActionName = DataTable.LocalSheet.Name

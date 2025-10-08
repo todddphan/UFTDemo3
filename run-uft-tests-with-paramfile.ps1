@@ -6,55 +6,69 @@ param(
     [string]$DataSheetName       
 )
 
-# 1. DEFINE ROOT PATHS
+# --- Configuration Paths ---
 $testRoot = "C:\VIP\Demos\Github\UFTDemo3\uft-one-tests"
 $resultsRoot = "C:\VIP\Demos\Github\UFTDemo3\Results"
 $tempParamsRoot = "C:\VIP\Demos\Github\UFTDemo3\TempParams"
+$launcherPath = "C:\Tools\FTToolsLauncher\FTToolsLauncher.exe"
 
-# 2. DEFINE EXCEL DATA PATH
+# Define the data paths
 $excelDataPath = "C:\VIP\Demos\Github\UFTDemo3\Test_Data\MasterData.xlsx" 
 
-# 3. Construct the full path to the specific group directory
-$groupPath = "$testRoot\$GroupFolder"
+# --- Directory Setup and Cleanup ---
+# Ensure directories exist
+if (-not (Test-Path $resultsRoot)) { New-Item -Path $resultsRoot -ItemType Directory | Out-Null }
+if (-not (Test-Path $tempParamsRoot)) { New-Item -Path $tempParamsRoot -ItemType Directory | Out-Null }
 
+# Clean up old .mtbx files before starting
+Get-ChildItem -Path $tempParamsRoot -Filter "*.mtbx" | Remove-Item -Force
+
+# --- Execution Logic ---
+
+$groupPath = "$testRoot\$GroupFolder"
 Write-Host "Searching for UFT tests in: $groupPath"
 
-# 4. Loop through each UFT test folder inside the specified group folder
+# Loop through each UFT test folder inside the specified group folder
 Get-ChildItem -Path $groupPath -Directory | ForEach-Object {
     $testName = $_.Name
     $testPath = $_.FullName
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     
-    # Construct paths for results and param files
+    # Construct paths for results and .mtbx files
     $resultsFile = "$resultsRoot\$testName`_$timestamp.html"
-    $paramFile = "$tempParamsRoot\$testName`_params.txt"
+    $mtbxFile = "$tempParamsRoot\$testName.mtbx" # e.g., TempParams\AdvantageOnlineLogin.mtbx
 
-    # Convert to forward slashes for FTToolsLauncher compatibility
+    Write-Host "Processing test: $testName"
+    
+    # Convert all backslashes to forward slashes for XML path compatibility
     $testPath_Fwd = $testPath -replace '\\', '/'
     $resultsFile_Fwd = $resultsFile -replace '\\', '/'
     $excelDataPath_Fwd = $excelDataPath -replace '\\', '/'
 
-    Write-Host "Processing test: $testName"
-    
-    # 5. Create the parameter file content with both Excel path and sheet name
-    $paramContent = @"
-[General]
-RunMode=Normal
-runType=FileSystem
-resultsFilename=$resultsFile_Fwd
-DataTablePath=$excelDataPath_Fwd
-DataTableSheet=$DataSheetName
-
-[Test1]
-Test1=$testPath_Fwd
+    # 9. Create the .mtbx XML content, including InputParameters
+    $mtbxContent = @"
+<?xml version="1.0" encoding="utf-8"?>
+<TestBatch xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.microfocus.com/mtb/TestBatch.xsd">
+  <Test Type="GUITest" Path="$testPath_Fwd">
+    <RunConfiguration>
+      <OutputConfiguration>
+        <ResultFileName>$resultsFile_Fwd</ResultFileName>
+      </OutputConfiguration>
+      <InputParameters>
+        <Parameter Name="DataTablePath" Value="$excelDataPath_Fwd" />
+        <Parameter Name="DataTableSheet" Value="$DataSheetName" />
+      </InputParameters>
+    </RunConfiguration>
+  </Test>
+</TestBatch>
 "@
 
-    # 6. Save the parameter file with compatible encoding
-    $paramContent | Out-File -FilePath $paramFile -Encoding Default
+    # 10. Save the .mtbx parameter file
+    $mtbxContent | Out-File -FilePath $mtbxFile -Encoding UTF8
 
-    # 7. Run the test using FTToolsLauncher
-    Write-Host "Executing test with parameters: $paramFile"
-    & "C:\Tools\FTToolsLauncher\FTToolsLauncher.exe" -paramfile $paramFile
+    # 11. Run the test using FTToolsLauncher and the -source argument
+    Write-Host "Executing test with .mtbx file: $mtbxFile"
+    & $launcherPath -source $mtbxFile
 }
 
 Write-Host "Finished processing tests in group: $GroupFolder"

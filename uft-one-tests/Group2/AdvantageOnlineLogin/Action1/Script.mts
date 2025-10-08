@@ -1,12 +1,12 @@
 ﻿' Code to run in the DataSetup Action
 
 ' ⭐ MODIFIED LINE: Reference the new environment variable name set by the PowerShell script (UFT_DATA_PATH)
-Dim ExcelPath : ExcelPath = Environment.Value("UFT_DATA_PATH") 
+'Dim ExcelPath : ExcelPath = Environment.Value("UFT_DATA_PATH") 
 
 Dim SheetName : SheetName = Environment.Value("DataTableSheet")  ' This name is still passed via the parameter file
 
 ' ⭐ NEW DEBUG CODE: Report the retrieved environment values
-Reporter.ReportEvent micDone, "Data Table Path Check", "ExcelPath retrieved: " & ExcelPath
+Reporter.ReportEvent micDone, "Data Table Path Check", "ExcelPath retrieved: " & "C:\VIP\Demos\Github\UFTDemo3\Test_Data\MasterData.xlsx"
 Reporter.ReportEvent micDone, "Data Table Sheet Check", "SheetName retrieved: " & SheetName
 
 

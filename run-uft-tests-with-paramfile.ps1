@@ -12,6 +12,7 @@ $resultsRoot = "C:\VIP\Demos\Github\UFTDemo3\Results"
 $tempParamsRoot = "C:\VIP\Demos\Github\UFTDemo3\TempParams"
 
 # 2. DEFINE EXCEL DATA PATH
+# This path will be injected as a System Environment Variable
 $excelDataPath = "C:\VIP\Demos\Github\UFTDemo3\Test_Data\MasterData.xlsx" 
 
 # --- FOLDER SETUP AND CLEANUP ---
@@ -53,35 +54,40 @@ Get-ChildItem -Path $groupPath -Directory | ForEach-Object {
     $resultsFile = "$resultsRoot\$testName`_$timestamp.html"
     $paramFile = "$tempParamsRoot\$testName`_params.txt"
 
-    # 8. ⭐ CRITICAL FIX: Escape backslashes for FTToolsLauncher parameter file
-    # Replace all single backslashes (\) with double backslashes (\\).
-    # This is required for the UFT engine to correctly parse the Windows paths 
-    # when reading the INI-style parameter file.
-    $testPath_Escaped = $testPath -replace '\\', '\\\\'
-    $resultsFile_Escaped = $resultsFile -replace '\\', '\\\\'
-    $excelDataPath_Escaped = $excelDataPath -replace '\\', '\\\\'
+    # Convert Windows backslashes (\) to forward slashes (/) 
+    # This is safe and often required for non-native Windows paths in FTToolsLauncher
+    $testPath_Fwd = $testPath -replace '\\', '/'
+    $resultsFile_Fwd = $resultsFile -replace '\\', '/'
+    # $excelDataPath is NOT converted here, it will be used as a system variable below
 
     Write-Host "Processing test: $testName"
     
-    # 9. Create the parameter file content with ESCAPED PATHS
+    # 9. Create the parameter file content (NOTE: DataTablePath is REMOVED)
     $paramContent = @"
 [General]
 RunMode=Normal
 runType=FileSystem
-resultsFilename=$resultsFile_Escaped
-DataTablePath=$excelDataPath_Escaped
+resultsFilename=$resultsFile_Fwd
 DataTableSheet=$DataSheetName
 
 [Test1]
-Test1=$testPath_Escaped
+Test1=$testPath_Fwd
 "@
 
-    # 10. Save the parameter file using default encoding (safe assumption)
-    $paramContent | Out-File -FilePath $paramFile
+    # 10. Save the parameter file
+    $paramContent | Out-File -FilePath $paramFile -Encoding ASCII
 
-    # 11. Run the test using FTToolsLauncher
+    # 11. ⭐ CRITICAL FIX: Set the System Environment Variable and run the test
+    # We use a non-reserved variable name (UFT_DATA_PATH) and pass the path directly 
+    # to the environment, which the UFT script will read.
+    Write-Host "Setting environment variable UFT_DATA_PATH to: $excelDataPath"
+    $env:UFT_DATA_PATH = $excelDataPath
+    
     Write-Host "Executing test with parameters: $paramFile"
     & "C:\Tools\FTToolsLauncher\FTToolsLauncher.exe" -paramfile $paramFile
+    
+    # Unset the environment variable after the run (optional but good practice)
+    $env:UFT_DATA_PATH = $null
 }
 
 Write-Host "Finished processing tests in group: $GroupFolder"

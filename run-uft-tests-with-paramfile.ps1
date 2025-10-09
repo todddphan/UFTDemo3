@@ -16,12 +16,11 @@ $launcherPath = "C:\Tools\FTToolsLauncher\FTToolsLauncher.exe"
 $excelDataPath = "C:\VIP\Demos\Github\UFTDemo3\Test_Data\MasterData.xlsx" 
 
 # --- Directory Setup and Cleanup ---
-# Ensure directories exist
+# Ensure directories exist and clean up old files
 if (-not (Test-Path $resultsRoot)) { New-Item -Path $resultsRoot -ItemType Directory | Out-Null }
 if (-not (Test-Path $tempParamsRoot)) { New-Item -Path $tempParamsRoot -ItemType Directory | Out-Null }
-
-# Clean up old .mtbx files before starting
 Get-ChildItem -Path $tempParamsRoot -Filter "*.mtbx" | Remove-Item -Force
+Get-ChildItem -Path $tempParamsRoot -Filter "*.txt" | Remove-Item -Force
 
 # --- Execution Logic ---
 
@@ -34,18 +33,28 @@ Get-ChildItem -Path $groupPath -Directory | ForEach-Object {
     $testPath = $_.FullName
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     
-    # Construct paths for results and .mtbx files
+    # Construct file paths
     $resultsFile = "$resultsRoot\$testName`_$timestamp.html"
-    $mtbxFile = "$tempParamsRoot\$testName.mtbx" # e.g., TempParams\AdvantageOnlineLogin.mtbx
+    $mtbxFile = "$tempParamsRoot\$testName.mtbx"
+    $paramFile = "$tempParamsRoot\$testName.txt" # Simple required param file
 
     Write-Host "Processing test: $testName"
     
-    # Convert all backslashes to forward slashes for XML path compatibility
+    # Convert all paths to forward slashes for cross-file consistency
     $testPath_Fwd = $testPath -replace '\\', '/'
     $resultsFile_Fwd = $resultsFile -replace '\\', '/'
     $excelDataPath_Fwd = $excelDataPath -replace '\\', '/'
 
-    # 9. Create the .mtbx XML content, including InputParameters
+    # 1. Create the simple .txt parameter file (only required general settings)
+    $paramContent = @"
+[General]
+RunMode=Normal
+runType=FileSystem
+"@
+    # Save the .txt file
+    $paramContent | Out-File -FilePath $paramFile -Encoding ASCII
+
+    # 2. Create the .mtbx XML content (test list, results, and custom InputParameters)
     $mtbxContent = @"
 <?xml version="1.0" encoding="utf-8"?>
 <TestBatch xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.microfocus.com/mtb/TestBatch.xsd">
@@ -62,13 +71,12 @@ Get-ChildItem -Path $groupPath -Directory | ForEach-Object {
   </Test>
 </TestBatch>
 "@
-
-    # 10. Save the .mtbx parameter file
+    # Save the .mtbx file
     $mtbxContent | Out-File -FilePath $mtbxFile -Encoding UTF8
 
-    # 11. Run the test using FTToolsLauncher and the -source argument
-    Write-Host "Executing test with .mtbx file: $mtbxFile"
-    & $launcherPath -source $mtbxFile
+    # 3. Run the test using FTToolsLauncher, passing BOTH -paramfile and -source
+    Write-Host "Executing test with .txt: $paramFile and .mtbx: $mtbxFile"
+    & $launcherPath -paramfile $paramFile -source $mtbxFile
 }
 
 Write-Host "Finished processing tests in group: $GroupFolder"

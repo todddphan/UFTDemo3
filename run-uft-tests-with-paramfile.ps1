@@ -19,7 +19,6 @@ $excelDataPath = "C:\VIP\Demos\Github\UFTDemo3\Test_Data\MasterData.xlsx"
 $groupPath = "$testRoot\$GroupFolder"
 Write-Host "Searching for UFT tests in: $groupPath"
 
-# Loop through each UFT test folder inside the specified group folder
 Get-ChildItem -Path $groupPath -Directory | ForEach-Object {
     $testName = $_.Name
     $testPath = $_.FullName
@@ -35,7 +34,7 @@ Get-ChildItem -Path $groupPath -Directory | ForEach-Object {
     $resultsFile_Fwd = $resultsFile -replace '\\', '/'
     $excelDataPath_Fwd = $excelDataPath -replace '\\', '/'
 
-    # 1. Create the .txt parameter file (NOW INCLUDES resultsFilename AND [Test1])
+    # 1. Create the .txt parameter file (Mandatory run settings AND [Test1])
     $paramContent = @"
 [General]
 RunMode=Normal
@@ -47,22 +46,14 @@ Test1=$testPath_Fwd
 "@
     $paramContent | Out-File -FilePath $paramFile -Encoding ASCII
 
-    # 2. Create the .mtbx XML content (test list, results, and custom InputParameters)
+    # 2. Create the .mtbx XML content (Using the simplified <Mtbx> structure)
     $mtbxContent = @"
-<?xml version="1.0" encoding="utf-8"?>
-<TestBatch xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.microfocus.com/mtb/TestBatch.xsd">
-  <Test Type="GUITest" Path="$testPath_Fwd">
-    <RunConfiguration>
-      <OutputConfiguration>
-        <ResultFileName>$resultsFile_Fwd</ResultFileName>
-      </OutputConfiguration>
-      <InputParameters>
-        <Parameter Name="DataTablePath" Value="$excelDataPath_Fwd" />
-        <Parameter Name="DataTableSheet" Value="$DataSheetName" />
-      </InputParameters>
-    </RunConfiguration>
+<Mtbx>
+  <Test name="$testName" path="$testPath_Fwd" reportPath="$resultsFile_Fwd">
+    <Parameter name="DataTablePath" value="$excelDataPath_Fwd" type="string"/>
+    <Parameter name="DataTableSheet" value="$DataSheetName" type="string"/>
   </Test>
-</TestBatch>
+</Mtbx>
 "@
     $mtbxContent | Out-File -FilePath $mtbxFile -Encoding UTF8
 

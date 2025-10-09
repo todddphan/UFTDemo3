@@ -17,6 +17,9 @@ $excelDataPath = "C:\VIP\Demos\Github\UFTDemo3\Test_Data\MasterData.xlsx"
 
 # --- Execution Logic ---
 $groupPath = "$testRoot\$GroupFolder"
+Write-Host "Searching for UFT tests in: $groupPath"
+
+# Loop through each UFT test folder inside the specified group folder
 Get-ChildItem -Path $groupPath -Directory | ForEach-Object {
     $testName = $_.Name
     $testPath = $_.FullName
@@ -25,21 +28,26 @@ Get-ChildItem -Path $groupPath -Directory | ForEach-Object {
     $mtbxFile = "$tempParamsRoot\$testName.mtbx"
     $paramFile = "$tempParamsRoot\$testName.txt"
 
-    # Convert paths to forward slashes for cross-file consistency
+    Write-Host "Processing test: $testName"
+    
+    # Convert all paths to forward slashes for cross-file consistency
     $testPath_Fwd = $testPath -replace '\\', '/'
     $resultsFile_Fwd = $resultsFile -replace '\\', '/'
     $excelDataPath_Fwd = $excelDataPath -replace '\\', '/'
 
-    # 1. Create the .txt parameter file (NOW INCLUDES resultsFilename)
+    # 1. Create the .txt parameter file (NOW INCLUDES resultsFilename AND [Test1])
     $paramContent = @"
 [General]
 RunMode=Normal
 runType=FileSystem
 resultsFilename=$resultsFile_Fwd
+
+[Test1]
+Test1=$testPath_Fwd
 "@
     $paramContent | Out-File -FilePath $paramFile -Encoding ASCII
 
-    # 2. Create the .mtbx XML content (InputParameters are still here)
+    # 2. Create the .mtbx XML content (test list, results, and custom InputParameters)
     $mtbxContent = @"
 <?xml version="1.0" encoding="utf-8"?>
 <TestBatch xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.microfocus.com/mtb/TestBatch.xsd">
@@ -58,6 +66,9 @@ resultsFilename=$resultsFile_Fwd
 "@
     $mtbxContent | Out-File -FilePath $mtbxFile -Encoding UTF8
 
-    # 3. Run the test
+    # 3. Run the test using FTToolsLauncher, passing BOTH -paramfile and -source
+    Write-Host "Executing test with .txt: $paramFile and .mtbx: $mtbxFile"
     & $launcherPath -paramfile $paramFile -source $mtbxFile
 }
+
+Write-Host "Finished processing tests in group: $GroupFolder"
